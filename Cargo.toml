@@ -1,9 +1,0 @@
-[package]
-name = "cgwt"
-version = "0.1.0"
-edition = "2024"
-description = "CLI tool to manage git worktrees, with a behavior that is modifiable with a configuration file."
-license = "MIT"
-repository = "https://github.com/sylmarien/cgwt"
-readme = "README.md"
-include = ["/src", "/tests", "/LICENSE", "/README.md"]

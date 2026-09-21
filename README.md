@@ -8,22 +8,22 @@ CLI tool to manage git worktrees, with a behavior that is modifiable with a conf
 uv tool install cgwt
 ```
 
-`pipx install cgwt` works too. PyPI serves prebuilt wheels for Linux, macOS, and Windows. Other platforms build from the source distribution and need a Rust toolchain.
+`pipx install cgwt` works too. cgwt requires Python 3.12 or later.
 
 ## Development
 
-cgwt is a Rust crate. [maturin](https://www.maturin.rs) packages the binary into Python wheels.
+[uv](https://docs.astral.sh/uv/) manages the environment.
 
 ```sh
-cargo test
-cargo fmt --check
-cargo clippy --all-targets -- -D warnings
-cargo llvm-cov --fail-under-lines 95 --fail-under-regions 90
-maturin build --release --out dist
+uv sync
+uv run ruff check
+uv run ruff format --check
+uv run mypy
+uv run pytest
 ```
 
-Coverage needs [cargo-llvm-cov](https://github.com/taiki-e/cargo-llvm-cov).
+pytest fails when line or branch coverage is below 100%.
 
 ## Release
 
-The version lives in `Cargo.toml`. To release, bump it, commit, and push a matching `v*` tag. The release workflow builds the wheels and publishes them to PyPI.
+The version lives in `pyproject.toml`. To release, run the Release workflow from the Actions tab and choose the version part to bump. The workflow bumps the version, tags the commit, publishes to PyPI, and creates a GitHub release.

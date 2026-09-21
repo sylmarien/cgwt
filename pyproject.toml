@@ -1,22 +1,51 @@
-[build-system]
-requires = ["maturin>=1.15,<2.0"]
-build-backend = "maturin"
-
 [project]
 name = "cgwt"
-dynamic = ["version", "description"]
+version = "0.0.0"
+description = "CLI tool to manage git worktrees, with a behavior that is modifiable with a configuration file."
 readme = "README.md"
+requires-python = ">=3.12"
 license = "MIT"
 license-files = ["LICENSE"]
-requires-python = ">=3.8"
 classifiers = [
     "Environment :: Console",
-    "Programming Language :: Rust",
     "Topic :: Software Development :: Version Control :: Git",
 ]
+dependencies = []
 
 [project.urls]
 Repository = "https://github.com/sylmarien/cgwt"
 
-[tool.maturin]
-bindings = "bin"
+[project.scripts]
+cgwt = "cgwt.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.17",
+    "pytest>=8.4",
+    "pytest-cov>=6.2",
+    "ruff>=0.12",
+]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "N", "PTH", "RUF"]
+
+[tool.mypy]
+strict = true
+files = ["src", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=cgwt --cov-report=term-missing"
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+fail_under = 100
