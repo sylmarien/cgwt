@@ -1,36 +1,40 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
 
 permissions:
   contents: read
 
 jobs:
-  checks:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Check formatting
-        run: cargo fmt --check
-      - name: Lint
-        run: cargo clippy --all-targets -- -D warnings
-      - uses: taiki-e/install-action@cargo-llvm-cov
-      - name: Test with coverage
-        run: cargo llvm-cov --fail-under-lines 95 --fail-under-regions 90
+      - uses: astral-sh/setup-uv@v7
+      - run: uv sync --locked
+      - run: uv run ruff check
+      - run: uv run ruff format --check
+      - run: uv run mypy
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12", "3.14"]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: uv sync --locked
+      - run: uv run pytest
 
   wheel:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Build wheel
-        uses: PyO3/maturin-action@v1
-        with:
-          args: --release --out dist
-          manylinux: auto
       - uses: astral-sh/setup-uv@v7
+      - run: uv build
       - name: Run the installed wheel
         run: uv tool run --from dist/*.whl cgwt --version
