@@ -12,6 +12,10 @@ _Avoid_: Repo, codebase
 One clone on disk, together with the worktrees git records for it.
 _Avoid_: Clone, copy, checkout
 
+**Path pattern**:
+The configuration entry that computes the path of a worktree from facts about the project, the repository, and the branch.
+_Avoid_: Path rule, template, layout
+
 **Workforest**:
 A directory that contains the worktrees cgwt creates, for any number of projects.
 _Avoid_: Forest, forest location, worktree root
