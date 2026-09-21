@@ -16,6 +16,10 @@ _Avoid_: Clone, copy, checkout
 The configuration entry that computes the path of a worktree from facts about the project, the repository, and the branch.
 _Avoid_: Path rule, template, layout
 
+**Project override**:
+A configuration entry that replaces the default settings for every project it matches.
+_Avoid_: Project rule, per-project config
+
 **Base**:
 The commit a new branch starts from.
 _Avoid_: Start point
