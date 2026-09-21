@@ -5,7 +5,7 @@ cgwt creates, tracks, and deletes git worktrees according to a per-user configur
 ## Language
 
 **Project**:
-The codebase that the remote of a repository identifies. Several repositories can belong to one project. A repository with no remote is a project of its own.
+The codebase that the remote of a repository identifies. Several repositories can belong to one project.
 _Avoid_: Repo, codebase
 
 **Repository**:
@@ -15,6 +15,10 @@ _Avoid_: Clone, copy, checkout
 **Path pattern**:
 The configuration entry that computes the path of a worktree from facts about the project, the repository, and the branch.
 _Avoid_: Path rule, template, layout
+
+**Base**:
+The commit a new branch starts from.
+_Avoid_: Start point
 
 **Workforest**:
 A directory that contains the worktrees cgwt creates, for any number of projects.
