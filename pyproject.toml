@@ -1,6 +1,6 @@
 [project]
 name = "cgwt"
-version = "0.0.0"
+version = "0.1.0"
 description = "CLI tool to manage git worktrees, with a behavior that is modifiable with a configuration file."
 readme = "README.md"
 requires-python = ">=3.12"
