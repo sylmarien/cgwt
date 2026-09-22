@@ -27,3 +27,7 @@ _Avoid_: Start point
 **Workforest**:
 A directory that contains the worktrees cgwt creates, for any number of projects.
 _Avoid_: Forest, forest location, worktree root
+
+**Worktree**:
+A linked git worktree inside a workforest. A main clone is a Repository, never a Worktree.
+_Avoid_: Managed worktree, tracked worktree
