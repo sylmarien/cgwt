@@ -31,3 +31,7 @@ _Avoid_: Forest, forest location, worktree root
 **Worktree**:
 A linked git worktree inside a workforest. A main clone is a Repository, never a Worktree.
 _Avoid_: Managed worktree, tracked worktree
+
+**Safe worktree**:
+A worktree that cgwt deletes without force. It has no changed or untracked file, no git operation in progress, no lock, and no commit that both exists on no remote and is unmerged into the default branch of origin.
+_Avoid_: Clean worktree, merged worktree
