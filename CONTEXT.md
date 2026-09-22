@@ -35,3 +35,7 @@ _Avoid_: Managed worktree, tracked worktree
 **Safe worktree**:
 A worktree that cgwt deletes without force. It has no changed or untracked file, no git operation in progress, no lock, and no commit that both exists on no remote and is unmerged into the default branch of origin.
 _Avoid_: Clean worktree, merged worktree
+
+**Broken worktree**:
+A worktree whose repository no longer exists. cgwt lists it and deletes it only with force.
+_Avoid_: Orphan worktree, stale worktree, dangling worktree
