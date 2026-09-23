@@ -8,7 +8,7 @@ CLI tool to manage git worktrees, with a behavior that is modifiable with a conf
 uv tool install cgwt
 ```
 
-`pipx install cgwt` works too. cgwt requires Python 3.12 or later.
+`pipx install cgwt` works too. cgwt requires Python 3.12 or later. cgwt requires git 2.38 or later, tested against 2.43.
 
 ## Development
 
