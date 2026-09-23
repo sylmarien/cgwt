@@ -39,3 +39,7 @@ _Avoid_: Clean worktree, merged worktree
 **Broken worktree**:
 A worktree whose repository no longer exists. cgwt lists it and deletes it only with force.
 _Avoid_: Orphan worktree, stale worktree, dangling worktree
+
+**Path collision**:
+A computed worktree path that already exists on disk. cgwt refuses to create the worktree.
+_Avoid_: Path conflict, occupied path
