@@ -1,6 +1,9 @@
 """Locate, load, and validate the configuration file."""
 
+import itertools
+import re
 import tomllib
+from collections import ChainMap
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -33,6 +36,75 @@ class Config:
             if "workforest" in override
         ]
         return list(dict.fromkeys(Path(str(name)).expanduser() for name in workforest_names))
+
+
+@dataclass
+class Settings:
+    """The settings of one project and the origin of each one."""
+
+    workforest: Path
+    path: str
+    fetch: bool
+    base: str
+    sources: dict[str, str]
+
+
+def match_project(glob: str, identifier: str) -> bool:
+    """Return whether glob matches the whole identifier; `*` matches any run of characters."""
+    pattern = re.escape(glob).replace(r"\*", ".*")
+    return re.fullmatch(pattern, identifier) is not None
+
+
+def specificity(glob: str) -> tuple[int, int, int]:
+    """Return the text lengths after the last `*`, before the first `*`, and without `*`."""
+    return (
+        len(glob.rpartition("*")[2]),
+        len(glob.partition("*")[0]),
+        len(glob) - glob.count("*"),
+    )
+
+
+def resolve_settings(config: Config, identifier: str, flags: Mapping[str, object]) -> Settings:
+    """Merge flags, the matching overrides by specificity, the top-level keys, and the defaults."""
+    matching_globs = sorted(
+        (glob for glob in config.projects if match_project(glob, identifier)),
+        key=specificity,
+        reverse=True,
+    )
+    for first_glob, second_glob in itertools.combinations(matching_globs, 2):
+        if specificity(first_glob) != specificity(second_glob):
+            continue
+        shared_keys = ", ".join(
+            key
+            for key in SETTING_DEFAULTS
+            if key in config.projects[first_glob] and key in config.projects[second_glob]
+        )
+        if shared_keys:
+            raise CgwtError(
+                f"projects.{first_glob} and projects.{second_glob} both match {identifier} "
+                f"with equal specificity and both set {shared_keys}. "
+                f"Remove {shared_keys} from one of them."
+            )
+    layers = ChainMap(
+        dict(flags),
+        *(config.projects[glob] for glob in matching_globs),
+        config.settings,
+        SETTING_DEFAULTS,
+    )
+    layer_names = ["flag", *(f"projects.{glob}" for glob in matching_globs), "top-level", "default"]
+    sources = {
+        key: next(
+            name for name, layer in zip(layer_names, layers.maps, strict=True) if key in layer
+        )
+        for key in SETTING_DEFAULTS
+    }
+    return Settings(
+        workforest=Path(str(layers["workforest"])).expanduser(),
+        path=str(layers["path"]),
+        fetch=bool(layers["fetch"]),
+        base=str(layers["base"]),
+        sources=sources,
+    )
 
 
 def locate_config_path(environ: Mapping[str, str]) -> Path:

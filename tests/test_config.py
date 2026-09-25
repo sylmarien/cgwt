@@ -3,7 +3,16 @@ from pathlib import Path
 
 import pytest
 
-from cgwt.config import SETTING_DEFAULTS, Config, load_config, locate_config_path
+from cgwt.config import (
+    SETTING_DEFAULTS,
+    Config,
+    Settings,
+    load_config,
+    locate_config_path,
+    match_project,
+    resolve_settings,
+    specificity,
+)
 from cgwt.errors import CgwtError
 
 
@@ -247,3 +256,145 @@ def test_load_config_returns_a_valid_value_table(tmp_path: Path) -> None:
     )
 
     assert config.values["first"] == {"input": "project", "split": "/", "at": -1, "slash": "-"}
+
+
+def test_match_project_star_matches_across_slashes() -> None:
+    assert match_project("gitlab.example.com/*", "gitlab.example.com/platform/tools/meta.project")
+
+
+def test_match_project_matches_the_whole_identifier() -> None:
+    assert not match_project("github.com/*", "x/github.com/y")
+
+
+def test_match_project_is_case_sensitive() -> None:
+    assert not match_project("GitHub.com/*", "github.com/x")
+
+
+def test_match_project_without_a_star_matches_only_itself() -> None:
+    assert match_project("github.com/x", "github.com/x")
+    assert not match_project("github.com/x", "github,com/x")
+
+
+@pytest.mark.parametrize(
+    ("glob", "expected_specificity"),
+    [
+        ("github.com/x", (12, 12, 12)),
+        ("gitlab.example.com/*", (0, 19, 19)),
+        ("*/tools/*.project", (8, 0, 15)),
+    ],
+)
+def test_specificity_measures_the_text_after_the_last_star_before_the_first_and_in_total(
+    glob: str, expected_specificity: tuple[int, int, int]
+) -> None:
+    assert specificity(glob) == expected_specificity
+
+
+def test_resolve_settings_without_flags_or_config_returns_the_defaults(tmp_path: Path) -> None:
+    assert resolve_settings(Config(), "github.com/x", {}) == Settings(
+        workforest=tmp_path / "worktrees",
+        path="{project}/{branch}",
+        fetch=True,
+        base="origin/HEAD",
+        sources={
+            "workforest": "default",
+            "path": "default",
+            "fetch": "default",
+            "base": "default",
+        },
+    )
+
+
+def test_resolve_settings_resolves_the_spec_example(tmp_path: Path) -> None:
+    identifier = "gitlab.example.com/platform/tools/meta.project"
+    config = Config(
+        settings={"workforest": "~/worktrees", "path": "{project}/{branch}"},
+        projects={
+            "gitlab.example.com/*": {"workforest": "~/work/worktrees"},
+            identifier: {"path": "{project}/{branch}/{project_parts}/{main_worktree}"},
+        },
+    )
+
+    settings = resolve_settings(config, identifier, {})
+
+    assert settings.workforest == tmp_path / "work" / "worktrees"
+    assert settings.path == "{project}/{branch}/{project_parts}/{main_worktree}"
+    assert settings.sources["workforest"] == "projects.gitlab.example.com/*"
+    assert settings.sources["path"] == f"projects.{identifier}"
+
+
+@pytest.mark.parametrize(
+    ("winning_glob", "losing_glob"),
+    [("*/d", "a/*"), ("a/b*", "a*b*c*"), ("a*c*", "a*")],
+)
+def test_resolve_settings_prefers_the_override_with_the_larger_specificity_measure(
+    winning_glob: str, losing_glob: str
+) -> None:
+    config = Config(projects={losing_glob: {"base": "losing"}, winning_glob: {"base": "winning"}})
+
+    settings = resolve_settings(config, "a/b/c/d", {})
+
+    assert (settings.base, settings.sources["base"]) == ("winning", f"projects.{winning_glob}")
+
+
+def test_resolve_settings_prefers_a_flag_over_every_override() -> None:
+    config = Config(settings={"base": "trunk"}, projects={"github.com/*": {"base": "develop"}})
+
+    settings = resolve_settings(config, "github.com/x", {"base": "main"})
+
+    assert (settings.base, settings.sources["base"]) == ("main", "flag")
+
+
+def test_resolve_settings_reports_each_origin(tmp_path: Path) -> None:
+    config = Config(
+        settings={"path": "{branch}"},
+        projects={
+            "github.com/*": {"base": "develop"},
+            "gitlab.example.com/*": {"workforest": "/elsewhere"},
+        },
+    )
+
+    settings = resolve_settings(config, "github.com/x", {"fetch": False})
+
+    assert settings == Settings(
+        workforest=tmp_path / "worktrees",
+        path="{branch}",
+        fetch=False,
+        base="develop",
+        sources={
+            "workforest": "default",
+            "path": "top-level",
+            "fetch": "flag",
+            "base": "projects.github.com/*",
+        },
+    )
+
+
+META_PROJECT = "gitlab.example.com/platform/tools/meta.project"
+
+
+def test_resolve_settings_rejects_tied_overrides_that_set_the_same_key() -> None:
+    config = Config(projects={"*tools*": {"base": "first"}, "*meta.*": {"base": "second"}})
+
+    with pytest.raises(CgwtError) as error:
+        resolve_settings(config, META_PROJECT, {})
+
+    assert error.value.exit_code == 1
+    assert "*tools*" in error.value.message
+    assert "*meta.*" in error.value.message
+
+
+def test_resolve_settings_accepts_tied_overrides_that_set_different_keys() -> None:
+    config = Config(projects={"*tools*": {"base": "develop"}, "*meta.*": {"fetch": False}})
+
+    settings = resolve_settings(config, META_PROJECT, {})
+
+    assert settings.sources["base"] == "projects.*tools*"
+    assert settings.sources["fetch"] == "projects.*meta.*"
+
+
+def test_resolve_settings_ignores_a_tie_with_a_non_matching_override() -> None:
+    config = Config(projects={"*tools*": {"base": "develop"}, "*never*": {"base": "trunk"}})
+
+    settings = resolve_settings(config, META_PROJECT, {})
+
+    assert settings.sources["base"] == "projects.*tools*"
