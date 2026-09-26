@@ -1,0 +1,5 @@
+path = "{project}/{branch}/{project_parts}/{main_worktree}"
+
+[values.project_parts]
+input = "project"
+split = "."
